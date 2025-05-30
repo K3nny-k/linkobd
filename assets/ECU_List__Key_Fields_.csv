@@ -1,0 +1,33 @@
+Node,ecu_id,us_en
+0E,0009,J519 Central Electrics
+40,0012,ABS/ESP System
+01,0001,Engine Control Module
+02,0002,Transmission Control
+03,0003,Airbag Control Unit
+04,0004,Comfort Control Module
+05,0005,Instrument Cluster
+06,0006,Headlight Control
+07,0007,Steering Wheel Electronics
+08,0008,Parking Aid
+09,0009,Air Conditioning
+0A,000A,Radio/Navigation
+0B,000B,Telephone Interface
+0C,000C,Adaptive Cruise Control
+0D,000D,Lane Change Assistant
+0F,000F,Gateway Module
+10,0010,Distance Regulation
+11,0011,Level Control
+12,0012,Tire Pressure Monitor
+13,0013,Fuel Pump Control
+14,0014,Suspension Electronics
+15,0015,Roof Electronics
+16,0016,Seat Memory
+17,0017,Battery Control Module
+18,0018,Auxiliary Heater
+19,0019,CAN Gateway
+1A,001A,Diagnostic Interface
+1B,001B,Digital Sound Package
+1C,001C,Suspension Control
+1D,001D,Side Assist
+1E,001E,Media Player
+1F,001F,Special Vehicle Equipment 

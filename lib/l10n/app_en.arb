@@ -1,0 +1,19 @@
+{
+  "@@locale": "en",
+  "fetch": "Fetch",
+  "copy": "Copy",
+  "send": "Send",
+  "notConnected": "Not connected",
+  "copied": "Copied",
+  "sent": "Sent",
+  "failedToFetch": "Failed to fetch",
+  "failedToSend": "Failed to send",
+  "receivedData": "Received Data",
+  "inputData": "Input Data",
+  "pasteHexTextHere": "Paste hex / text here",
+  "deviceResponseWillAppearHere": "Device response will appear here...",
+  "invalidHex": "Invalid hex",
+  "sendFailed": "Send failed",
+  "clear": "Clear",
+  "sentBytes": "Sent {count} bytes"
+} 
