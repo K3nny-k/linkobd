@@ -77,7 +77,7 @@ class ObdService {
 
       if (pid == '0C' && dataBytes.length >= 2) { // RPM
         _parseRpm('010C', dataBytes);
-      } else if (pid == '0D' && dataBytes.length >= 1) { // Speed
+      } else if (pid == '0D' && dataBytes.isNotEmpty) { // Speed
         _parseSpeed('010D', dataBytes);
       } else {
         // Placeholder for other PIDs or unhandled responses
@@ -116,7 +116,7 @@ class ObdService {
   // Decode Speed (PID 010D)
   // Formula: A
   void _parseSpeed(String pid, List<int> bytes) {
-    if (bytes.length >= 1) {
+    if (bytes.isNotEmpty) {
       int speed = bytes[0]; // km/h
       _obdFrameController.add(ObdFrame(
         pid: pid,

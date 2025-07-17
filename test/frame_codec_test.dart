@@ -259,4 +259,178 @@ void main() {
       expect(queue.peek(5), equals([]));
     });
   });
+
+  group('Frame Splitting Tests', () {
+    test('should split small data into single frame', () {
+      // Test data smaller than 16 bytes
+      final testData = List.generate(10, (i) => i % 256);
+      final frames = FrameCodec.splitIntoFrames(testData);
+      
+      expect(frames.length, equals(1));
+      
+      final frame = frames[0];
+      expect(frame[0], equals(0xAA)); // Header
+      expect(frame[1], equals(0xA6)); // Header
+      expect(frame[2], equals(1));    // Frame index
+      expect(frame[3], equals(0));    // Total length high byte
+      expect(frame[4], equals(10));   // Total length low byte
+      
+      // Check data section (should be padded to 16 bytes)
+      final dataStart = 5;
+      for (int i = 0; i < 10; i++) {
+        expect(frame[dataStart + i], equals(testData[i]));
+      }
+      
+      // Check padding (should be 0xFF)
+      for (int i = 10; i < 16; i++) {
+        expect(frame[dataStart + i], equals(0xFF));
+      }
+      
+      // Check CRC is present
+      expect(frame.length, equals(5 + 16 + 1)); // Header + data + CRC
+    });
+
+    test('should split large data into multiple frames', () {
+      // Test data larger than 16 bytes
+      final testData = List.generate(50, (i) => i % 256);
+      final frames = FrameCodec.splitIntoFrames(testData);
+      
+      expect(frames.length, equals(4)); // ceil(50/16) = 4
+      
+      // Check frame indices
+      expect(frames[0][2], equals(1)); // First frame
+      expect(frames[1][2], equals(2)); // Second frame
+      expect(frames[2][2], equals(3)); // Third frame
+      expect(frames[3][2], equals(4)); // Fourth frame
+      
+      // Check total length in all frames (should be same)
+      for (final frame in frames) {
+        expect(frame[3], equals(0));   // High byte (50 = 0x0032)
+        expect(frame[4], equals(50));  // Low byte
+      }
+      
+      // Check data distribution
+      // Frame 1: bytes 0-15
+      final frame1DataStart = 5;
+      for (int i = 0; i < 16; i++) {
+        expect(frames[0][frame1DataStart + i], equals(testData[i]));
+      }
+      
+      // Frame 2: bytes 16-31  
+      final frame2DataStart = 5;
+      for (int i = 0; i < 16; i++) {
+        expect(frames[1][frame2DataStart + i], equals(testData[16 + i]));
+      }
+      
+      // Frame 3: bytes 32-47
+      final frame3DataStart = 5;
+      for (int i = 0; i < 16; i++) {
+        expect(frames[2][frame3DataStart + i], equals(testData[32 + i]));
+      }
+      
+      // Frame 4: bytes 48-49 + padding
+      final frame4DataStart = 5;
+      for (int i = 0; i < 2; i++) { // 50 - 48 = 2 bytes
+        expect(frames[3][frame4DataStart + i], equals(testData[48 + i]));
+      }
+      
+      // Check padding in last frame
+      for (int i = 2; i < 16; i++) {
+        expect(frames[3][frame4DataStart + i], equals(0xFF));
+      }
+    });
+
+    test('should parse hex string and split correctly', () {
+      final hexString = '1A2B3C${'00' * 30}'; // 33 bytes
+      final frames = FrameCodec.parseHexAndSplitFrames(hexString);
+      
+      expect(frames.length, equals(3)); // ceil(33/16) = 3
+      
+      // Check first few bytes are parsed correctly
+      expect(frames[0][5], equals(0x1A));
+      expect(frames[0][6], equals(0x2B));
+      expect(frames[0][7], equals(0x3C));
+      expect(frames[0][8], equals(0x00));
+    });
+
+    test('should calculate correct CRC for frames', () {
+      final testData = [0x01, 0x02, 0x03];
+      final frames = FrameCodec.splitIntoFrames(testData);
+      
+      expect(frames.length, equals(1));
+      
+      final frame = frames[0];
+      final frameWithoutCrc = frame.sublist(0, frame.length - 1);
+      final expectedCrc = FrameCodec.calculateDataCrc8(frameWithoutCrc);
+      final actualCrc = frame.last;
+      
+      expect(actualCrc, equals(expectedCrc));
+    });
+
+    test('should handle empty data', () {
+      expect(() => FrameCodec.splitIntoFrames([]), throwsArgumentError);
+    });
+
+    test('should handle invalid hex string', () {
+      expect(() => FrameCodec.parseHexAndSplitFrames(''), throwsArgumentError);
+      expect(() => FrameCodec.parseHexAndSplitFrames('1'), throwsArgumentError); // Odd length
+      expect(() => FrameCodec.parseHexAndSplitFrames('XYZ'), throwsArgumentError); // Invalid hex
+    });
+  });
+
+  group('UDS Command Frame Tests', () {
+    test('should create Tester Present command frame with correct format', () {
+      // AA A6 00 00 02 3E 00 00 (short format for standard UDS)
+      final udsData = [0x3E, 0x00];
+      final frame = FrameCodec.createUdsCommandFrame(udsData);
+      
+      expect(frame, equals([0xAA, 0xA6, 0x00, 0x00, 0x02, 0x3E, 0x00, 0x00]));
+    });
+
+    test('should create Diagnostic Session Control command frame with correct format', () {
+      // AA A6 00 00 02 10 03 00 (short format for standard UDS)
+      final udsData = [0x10, 0x03];
+      final frame = FrameCodec.createUdsCommandFrame(udsData);
+      
+      expect(frame, equals([0xAA, 0xA6, 0x00, 0x00, 0x02, 0x10, 0x03, 0x00]));
+    });
+
+    test('should create Read Data By Identifier command frame with correct format', () {
+      // AA A6 00 00 03 22 F1 90 00 (short format for standard UDS)
+      final udsData = [0x22, 0xF1, 0x90];
+      final frame = FrameCodec.createUdsCommandFrame(udsData);
+      
+      expect(frame, equals([0xAA, 0xA6, 0x00, 0x00, 0x03, 0x22, 0xF1, 0x90, 0x00]));
+    });
+
+    test('should create Read Data By Identifier F18C command frame with correct format', () {
+      // AA A6 00 00 03 22 F1 8C 00 (short format for standard UDS)
+      final udsData = [0x22, 0xF1, 0x8C];
+      final frame = FrameCodec.createUdsCommandFrame(udsData);
+      
+      expect(frame, equals([0xAA, 0xA6, 0x00, 0x00, 0x03, 0x22, 0xF1, 0x8C, 0x00]));
+    });
+
+    test('should create Read Data By Identifier 0174 command frame with correct format', () {
+      // AA A6 00 00 03 22 01 74 00 (short format for standard UDS)
+      final udsData = [0x22, 0x01, 0x74];
+      final frame = FrameCodec.createUdsCommandFrame(udsData);
+      
+      expect(frame, equals([0xAA, 0xA6, 0x00, 0x00, 0x03, 0x22, 0x01, 0x74, 0x00]));
+    });
+
+    test('should handle empty UDS data', () {
+      expect(() => FrameCodec.createUdsCommandFrame([]), throwsArgumentError);
+    });
+
+    test('should handle various UDS data lengths with correct format', () {
+      // Single byte command - AA A6 00 00 01 11 00 (short format)
+      final singleByte = FrameCodec.createUdsCommandFrame([0x11]);
+      expect(singleByte, equals([0xAA, 0xA6, 0x00, 0x00, 0x01, 0x11, 0x00]));
+      
+      // Longer command - AA A6 00 00 06 2E F1 90 01 02 03 00 (short format)
+      final longCommand = FrameCodec.createUdsCommandFrame([0x2E, 0xF1, 0x90, 0x01, 0x02, 0x03]);
+      expect(longCommand, equals([0xAA, 0xA6, 0x00, 0x00, 0x06, 0x2E, 0xF1, 0x90, 0x01, 0x02, 0x03, 0x00]));
+    });
+  });
 } 

@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'dart:convert'; // For utf8.decode
-import 'dart:typed_data'; // For Uint8List
+// For Uint8List
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter/foundation.dart';
@@ -89,43 +89,49 @@ class BleTransport {
   Stream<List<ScanResult>> startScan() async* {
     print("🔍 Starting BLE scan for all devices...");
     
+    // Check Flutter Blue Plus availability
+    try {
+      final bluetoothState = await FlutterBluePlus.isSupported;
+      print("🔍 Bluetooth supported: $bluetoothState");
+      
+      if (!bluetoothState) {
+        print("❌ Bluetooth is not supported on this device");
+        yield [];
+        return;
+      }
+    } catch (e) {
+      print("❌ Error checking Bluetooth support: $e");
+    }
+    
     // Check permissions first
     try {
       print("🔍 Checking permissions...");
       
       // Check location permission (required for BLE scanning)
       final locationStatus = await Permission.location.status;
-      print("🔍 Location permission: $locationStatus");
-      
       if (!locationStatus.isGranted) {
         print("🔍 Requesting location permission...");
         final result = await Permission.location.request();
-        print("🔍 Location permission result: $result");
-        
         if (!result.isGranted) {
-          print("❌ Location permission denied - BLE scan requires location access");
-          yield [];
-          return;
+          print("❌ Location permission denied - BLE scan may not work properly");
         }
       }
       
       // Check Bluetooth scan permission (Android 12+)
       final bluetoothScanStatus = await Permission.bluetoothScan.status;
-      print("🔍 Bluetooth scan permission: $bluetoothScanStatus");
-      
       if (!bluetoothScanStatus.isGranted) {
         print("🔍 Requesting Bluetooth scan permission...");
-        final result = await Permission.bluetoothScan.request();
-        print("🔍 Bluetooth scan permission result: $result");
-        
-        if (!result.isGranted) {
-          print("❌ Bluetooth scan permission denied");
-          yield [];
-          return;
-        }
+        await Permission.bluetoothScan.request();
       }
       
-      print("✅ All permissions granted");
+      // Check Bluetooth connect permission (Android 12+)
+      final bluetoothConnectStatus = await Permission.bluetoothConnect.status;
+      if (!bluetoothConnectStatus.isGranted) {
+        print("🔍 Requesting Bluetooth connect permission...");
+        await Permission.bluetoothConnect.request();
+      }
+      
+      print("✅ Permission checks completed");
     } catch (e) {
       print("❌ Error checking permissions: $e");
       // Continue anyway - permissions might not be needed on older Android versions
@@ -133,39 +139,49 @@ class BleTransport {
     
     // Check adapter state
     try {
-      final adapterState = await FlutterBluePlus.adapterState.first;
+      final adapterState = await FlutterBluePlus.adapterState.first.timeout(const Duration(seconds: 5));
       print("🔍 Bluetooth adapter state: $adapterState");
       
       if (adapterState != BluetoothAdapterState.on) {
         print("❌ Bluetooth adapter is not on: $adapterState");
+        if (adapterState == BluetoothAdapterState.off) {
+          print("❌ Please turn on Bluetooth in device settings");
+        }
         yield [];
         return;
       }
+      print("✅ Bluetooth adapter is ON");
     } catch (e) {
       print("❌ Error checking adapter state: $e");
-      yield [];
-      return;
+      print("❌ Continuing with scan anyway...");
     }
     
     // Check if already scanning
-    final isScanning = await FlutterBluePlus.isScanning.first;
-    if (isScanning) {
-      print("🔍 Already scanning, stopping first");
-      FlutterBluePlus.stopScan();
-      await Future.delayed(const Duration(milliseconds: 100));
+    try {
+      final isScanning = await FlutterBluePlus.isScanning.first;
+      if (isScanning) {
+        print("🔍 Already scanning, stopping first");
+        await FlutterBluePlus.stopScan();
+        await Future.delayed(const Duration(milliseconds: 100));
+      }
+    } catch (e) {
+      print("⚠️ Error checking/stopping previous scan: $e");
     }
     
     try {
+      print("🔍 Starting scan for all devices...");
+      
       FlutterBluePlus.startScan(
-        // withServices: [Guid(serviceUuid)], // Disabled - custom service may not be advertised
         timeout: const Duration(seconds: 15),
       );
-      print("🔍 Scan initiated, will check for custom service after connection");
+      print("🔍 ✅ Scan initiated successfully");
       
       // Yield the scan results stream
       yield* FlutterBluePlus.scanResults;
-    } catch (e) {
+      
+    } catch (e, stackTrace) {
       print("❌ Error starting scan: $e");
+      print("❌ Stack trace: $stackTrace");
       yield [];
     }
   }
@@ -422,12 +438,12 @@ class BleTransport {
     
     // Ensure command ends with a newline or carriage return if required by your OBD adapter
     // Most ELM327 expect a carriage return.
-    List<int> bytes = utf8.encode(command + "\r"); 
+    List<int> bytes = utf8.encode("$command\r"); 
     await _writeCharacteristic!.write(bytes, withoutResponse: false); // `withoutResponse: false` for acknowledged write
     print("Sent: $command");
   }
 
-  // Send raw bytes
+  // Send raw bytes with automatic chunking for large frames
   Future<void> sendRawBytes(Uint8List bytes) async {
     await _ensureConnected();
     
@@ -442,9 +458,45 @@ class BleTransport {
       _firstWriteAfterConnect = false;
     }
     
-    await _writeCharacteristic!.write(bytes, withoutResponse: false);
-    final hexString = bytes.map((b) => b.toRadixString(16).toUpperCase().padLeft(2, '0')).join(' ');
-    print("Sent raw bytes: $hexString");
+    // Try long write first, fall back to chunking if it fails
+    const int maxChunkSize = 20; // Maximum BLE write size for acknowledged writes without long writes
+    
+    if (bytes.length <= maxChunkSize) {
+      // Single write for small data
+      await _writeCharacteristic!.write(bytes, withoutResponse: false);
+      final hexString = bytes.map((b) => b.toRadixString(16).toUpperCase().padLeft(2, '0')).join(' ');
+      print("Sent raw bytes: $hexString");
+    } else {
+      // Try long write first for larger data
+      try {
+        await _writeCharacteristic!.write(bytes, withoutResponse: false, allowLongWrite: true);
+        final hexString = bytes.map((b) => b.toRadixString(16).toUpperCase().padLeft(2, '0')).join(' ');
+        print("Sent raw bytes (long write): $hexString");
+      } catch (e) {
+        print("Long write failed (${e.toString()}), falling back to chunking");
+        
+        // Fall back to chunking
+        print("Data too large (${bytes.length} bytes), chunking into $maxChunkSize byte pieces");
+        
+        for (int offset = 0; offset < bytes.length; offset += maxChunkSize) {
+          final end = (offset + maxChunkSize < bytes.length) ? offset + maxChunkSize : bytes.length;
+          final chunk = bytes.sublist(offset, end);
+          
+          await _writeCharacteristic!.write(chunk, withoutResponse: false);
+          
+          final hexString = chunk.map((b) => b.toRadixString(16).toUpperCase().padLeft(2, '0')).join(' ');
+          print("Sent chunk ${(offset ~/ maxChunkSize) + 1}: $hexString");
+          
+          // Small delay between chunks to avoid overwhelming the device
+          if (end < bytes.length) {
+            await Future.delayed(const Duration(milliseconds: 20));
+          }
+        }
+        
+        final totalHexString = bytes.map((b) => b.toRadixString(16).toUpperCase().padLeft(2, '0')).join(' ');
+        print("Complete frame sent in ${(bytes.length / maxChunkSize).ceil()} chunks: $totalHexString");
+      }
+    }
   }
 
   // Disconnect
@@ -472,6 +524,82 @@ class BleTransport {
     _rawResponseController.addError("Disconnected"); // Signal disconnection
     _rawBytesController.addError("Disconnected"); // Signal disconnection
     print("Disconnected");
+  }
+
+  /// Diagnostic method to check BLE connection and notification status
+  Future<void> diagnoseBleConnection() async {
+    print("🔍 === BLE Connection Diagnosis ===");
+    
+    // Check basic connection
+    print("🔍 Connected device: ${_connectedDevice?.remoteId ?? 'None'}");
+    print("🔍 Write characteristic: ${_writeCharacteristic?.uuid ?? 'None'}");
+    print("🔍 Notify characteristic: ${_notifyCharacteristic?.uuid ?? 'None'}");
+    print("🔍 Notify subscription active: ${_notifySubscription != null}");
+    
+    if (_connectedDevice == null) {
+      print("❌ No device connected");
+      return;
+    }
+    
+    if (_notifyCharacteristic == null) {
+      print("❌ No notify characteristic found");
+      print("🔍 Attempting to re-discover services...");
+      
+      try {
+        print("🔍 Re-discovering services...");
+        final services = await _connectedDevice!.discoverServices();
+        print("🔍 Found ${services.length} services after re-discovery");
+      } catch (e) {
+        print("❌ Service re-discovery failed: $e");
+      }
+      return;
+    }
+    
+    // Check if notifications are actually enabled
+    try {
+      final isNotifying = _notifyCharacteristic!.isNotifying;
+      print("🔍 Notifications enabled: $isNotifying");
+      
+      if (!isNotifying) {
+        print("⚠️ Notifications not enabled, attempting to enable...");
+        await _notifyCharacteristic!.setNotifyValue(true);
+        await Future.delayed(const Duration(milliseconds: 500));
+        
+        // Re-setup subscription
+        _notifySubscription?.cancel();
+        _notifySubscription = _notifyCharacteristic!.onValueReceived.listen((value) {
+          final timestamp = DateTime.now().toString().substring(11, 19);
+          final hexData = value.map((b) => b.toRadixString(16).toUpperCase().padLeft(2, '0')).join(' ');
+          print("📥 [$timestamp] Raw notification received: $hexData");
+          
+          _rawResponseController.add(utf8.decode(value, allowMalformed: true));
+          _rawBytesController.add(Uint8List.fromList(value));
+        });
+        print("✅ Notifications re-enabled and subscription re-established");
+      }
+    } catch (e) {
+      print("❌ Notification check/setup failed: $e");
+    }
+    
+    // Test simple write to see if device responds
+    if (_writeCharacteristic != null) {
+      print("🔍 Sending test command to device...");
+      try {
+        // Send a simple test command
+        final testData = Uint8List.fromList([0xAA, 0xA6, 0x00, 0x00, 0x02, 0x3E, 0x00, 0x00]);
+        await _writeCharacteristic!.write(testData, withoutResponse: false);
+        print("✅ Test command sent: ${testData.map((b) => b.toRadixString(16).toUpperCase().padLeft(2, '0')).join(' ')}");
+        print("⏳ Waiting 3 seconds for any response...");
+        
+        // Wait and see if any data comes back
+        await Future.delayed(const Duration(seconds: 3));
+        print("🔍 If no 📥 messages appeared above, the device is not responding");
+      } catch (e) {
+        print("❌ Test command failed: $e");
+      }
+    }
+    
+    print("🔍 === End Diagnosis ===");
   }
 
   void dispose() {

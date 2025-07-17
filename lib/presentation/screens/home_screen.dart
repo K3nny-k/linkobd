@@ -204,20 +204,14 @@ class _HomeScreenState extends State<HomeScreen> {
     
     // Handle function navigation based on function name
     switch (function) {
-      case 'Others':
-        // TODO: Navigate to Others screen
-        _showComingSoon('Others');
-        break;
       case 'Diagnosis':
-        // TODO: Navigate to Diagnosis screen
-        _showComingSoon('Diagnosis');
+        Navigator.pushNamed(context, '/diagnosis', arguments: _bleTransport);
         break;
       case 'SFD':
         Navigator.pushNamed(context, '/sfd', arguments: _bleTransport);
         break;
       case 'Maintenance Reset':
-        // TODO: Navigate to Maintenance Reset screen
-        _showComingSoon('Maintenance Reset');
+        Navigator.pushNamed(context, '/maintenance_reset', arguments: _bleTransport);
         break;
       case 'Read/Write Config':
         // TODO: Navigate to Read/Write Config screen
@@ -286,42 +280,12 @@ class _HomeScreenState extends State<HomeScreen> {
     
     return Scaffold(
       appBar: AppBar(
-        title: const Text('OBD-II Scanner'),
+        title: const Text('OBD Tool for VW/Audi/Porsche'),
         backgroundColor: theme.colorScheme.inversePrimary,
         centerTitle: true,
       ),
       body: Column(
         children: [
-          // Connection status indicator
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(16),
-            color: _isConnected 
-                ? theme.colorScheme.primaryContainer 
-                : theme.colorScheme.errorContainer,
-            child: Row(
-              children: [
-                Icon(
-                  _isConnected ? Icons.bluetooth_connected : Icons.bluetooth_disabled,
-                  color: _isConnected 
-                      ? theme.colorScheme.onPrimaryContainer 
-                      : theme.colorScheme.onErrorContainer,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  _isConnected 
-                      ? 'Connected to ${_connectedDevice?.platformName ?? _connectedDevice?.remoteId.toString() ?? 'device'}'
-                      : 'Not connected',
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: _isConnected 
-                        ? theme.colorScheme.onPrimaryContainer 
-                        : theme.colorScheme.onErrorContainer,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          
           // Function grid
           Expanded(
             child: Padding(
@@ -336,11 +300,6 @@ class _HomeScreenState extends State<HomeScreen> {
                     title: 'Settings',
                     icon: Icons.settings,
                     onTap: () => _onFunctionTap('Settings'),
-                  ),
-                  FunctionCard(
-                    title: 'Others',
-                    icon: Icons.more_horiz,
-                    onTap: () => _onFunctionTap('Others'),
                   ),
                   FunctionCard(
                     title: 'Diagnosis',
@@ -366,11 +325,6 @@ class _HomeScreenState extends State<HomeScreen> {
                     title: 'Hex Console',
                     icon: Icons.code,
                     onTap: () => _onFunctionTap('Hex Console'),
-                  ),
-                  FunctionCard(
-                    title: 'Placeholder B',
-                    icon: Icons.help_outline,
-                    isEnabled: false,
                   ),
                 ],
               ),

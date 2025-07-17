@@ -41,9 +41,38 @@ class _ConnectScreenState extends State<ConnectScreen> {
     _scanSubscription = widget.bleTransport.startScan().listen(
       (results) {
         print("📱 Scan results received: ${results.length} devices");
+        // Show all devices but prioritize OBD devices
+        final filteredResults = results.toList();
+        
+        // Add detailed device debugging
+        print("📱 === DEVICE SCAN RESULTS ===");
+        for (int i = 0; i < results.length; i++) {
+          final result = results[i];
+          final deviceName = _getDeviceName(result);
+          print("📱 Device $i: '$deviceName' | ID: ${result.device.remoteId} | RSSI: ${result.rssi}");
+        }
+        
+        // Sort devices: OBD devices first, then others
+        filteredResults.sort((a, b) {
+          final aName = _getDeviceName(a).toLowerCase();
+          final bName = _getDeviceName(b).toLowerCase();
+          
+          // Expanded OBD device detection
+          final aIsObd = _isObdDevice(aName);
+          final bIsObd = _isObdDevice(bName);
+          
+          if (aIsObd && !bIsObd) return -1;
+          if (!aIsObd && bIsObd) return 1;
+          
+          // If both are OBD or both are not OBD, sort by signal strength (RSSI)
+          return b.rssi.compareTo(a.rssi);
+        });
+        
+        final obdCount = filteredResults.where((r) => _isObdDevice(_getDeviceName(r).toLowerCase())).length;
+        print("📱 After sorting: ${filteredResults.length} total devices, $obdCount OBD devices");
         if (mounted) {
           setState(() {
-            _scanResults = results;
+            _scanResults = filteredResults;
           });
         } else {
           print("📱 Widget not mounted, ignoring scan results");
@@ -155,6 +184,42 @@ class _ConnectScreenState extends State<ConnectScreen> {
     return '(Unknown)';
   }
 
+  /// Check if device name indicates it's an OBD device
+  bool _isObdDevice(String deviceName) {
+    final name = deviceName.toLowerCase();
+    
+    // Common OBD device name patterns
+    final obdPatterns = [
+      'obd',           // Generic OBD
+      'obdii',         // OBD-II
+      'obd-ii',        // OBD-II with dash
+      'obd2',          // OBD2
+      'elm327',        // Popular OBD chip
+      'elm',           // Short version
+      'can',           // CAN bus devices
+      'ble_obd',       // BLE OBD devices
+      'x_ble_obd',     // Specific pattern user mentioned
+      'diagnostic',    // Diagnostic devices
+      'scanner',       // Scanner devices
+      'auto',          // Auto-related devices
+      'car',           // Car-related devices
+      'vehicle',       // Vehicle devices
+      'torque',        // Torque app compatible
+      'ecu',           // ECU devices
+      'j1979',         // OBD standard
+    ];
+    
+    // Check if device name contains any OBD-related patterns
+    for (final pattern in obdPatterns) {
+      if (name.contains(pattern)) {
+        print("📱 ✅ OBD device detected: '$deviceName' (matched: '$pattern')");
+        return true;
+      }
+    }
+    
+    return false;
+  }
+
   @override
   void dispose() {
     print("📱 ConnectScreen disposing");
@@ -213,10 +278,41 @@ class _ConnectScreenState extends State<ConnectScreen> {
                     final result = _scanResults[index];
                     final deviceName = _getDeviceName(result);
                     
+                    final isObdDevice = _isObdDevice(deviceName);
+                    
                     return ListTile(
-                      leading: const Icon(Icons.bluetooth),
-                      title: Text(deviceName),
-                      subtitle: Text(result.device.remoteId.toString()),
+                      leading: Icon(
+                        isObdDevice ? Icons.car_rental : Icons.bluetooth,
+                        color: isObdDevice ? Colors.green : Colors.blue,
+                      ),
+                      title: Row(
+                        children: [
+                          Expanded(child: Text(deviceName)),
+                          if (isObdDevice) 
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: Colors.green,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Text(
+                                'OBD',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(result.device.remoteId.toString()),
+                          Text('RSSI: ${result.rssi} dBm', style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+                        ],
+                      ),
                       trailing: _connectingDeviceId == result.device.remoteId.toString()
                           ? const SizedBox(
                               width: 20,

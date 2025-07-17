@@ -1,0 +1,37 @@
+I/flutter (14481): ✅ [完整帧接收] 55 A9 00 23 59 02 FF D1 00 00 2F D2 00 00 2F D3 00 00 2F 71 41 01 2F 11 01 10 2F 70 11 01 2F 81 31 02 2F 81 91 04 2F 37
+I/flutter (14481): ✅ [完整帧接收] 55 A9 00 23 59 02 FF D1 00 00 2F D2 00 00 2F D3 00 00 2F 71 41 01 2F 11 01 10 2F 70 11 01 2F 81 31 02 2F 81 91 04 2F 37
+
+                                   DTC规则 解析方式如下：
+                                   55 A9 00 23 59 02 FF 后面的数据是收到的故障代码
+                                   一个完整的故障代码是4个字节，第一个故障代码是D10000 2F  D10000转成dec= 13 697 024，2F转成 bin二进制 =  0010 1111  
+                                   根据以上规则一次显示所有收到的故障代码：
+                                   DTC 001： Code 0xD10000 (13697024) Status:0x2F(0010 1111)
+                                   DTC 002:  Code 0xD20000 (13762560) Status:0x2F(0010 1111)
+                                   ...
+								   DTC 008:  Code 0x819104 (8491268)  Status:0x2F(0010 1111)
+								   
+								   
+								   
+
+I/flutter (14481): 📤 发送预设帧第15帧（第1次尝试）: AA A6 00 00 03 19 02 08 00
+D/[FBP-Android](14481): [FBP] onMethodCall: writeCharacteristic
+D/[FBP-Android](14481): [FBP] onCharacteristicWrite:
+D/[FBP-Android](14481): [FBP]   chr: fff2
+D/[FBP-Android](14481): [FBP]   status: GATT_SUCCESS (0)
+I/flutter (14481): Sent raw bytes: AA A6 00 00 03 19 02 08 00
+I/flutter (14481): ⏳ Waiting for response frame from position 268 (timeout: 2000ms)...
+D/[FBP-Android](14481): [FBP] onCharacteristicChanged:
+D/[FBP-Android](14481): [FBP]   chr: fff1
+I/flutter (14481): 📥 [17:00:15] Received 20 bytes: 55 A9 00 23 59 02 FF 11 01 10 2F 81 91 04 2F 81 31 02 2F D2
+I/flutter (14481): 📥 New data received: 55 A9 00 23 59 02 FF 11 01 10 2F 81 91 04 2F 81 31 02 2F D2
+I/flutter (14481): 📊 Frame analysis: DLC=36, total_length=40, buffer_length=20
+D/[FBP-Android](14481): [FBP] onCharacteristicChanged:
+D/[FBP-Android](14481): [FBP]   chr: fff1
+I/flutter (14481): 🔍 isConnected getter -> true
+I/flutter (14481): 📥 [17:00:15] Received 20 bytes: 00 00 2F D3 00 00 2F D1 00 00 2F 70 11 01 2F 71 41 01 2F EA
+I/flutter (14481): 📥 New data received: 00 00 2F D3 00 00 2F D1 00 00 2F 70 11 01 2F 71 41 01 2F EA
+I/flutter (14481): 📊 Frame analysis: DLC=36, total_length=40, buffer_length=40
+I/flutter (14481): ✅ [完整帧接收] 55 A9 00 23 59 02 FF 11 01 10 2F 81 91 04 2F 81 31 02 2F D2 00 00 2F D3 00 00 2F D1 00 00 2F 70 11 01 2F 71 41 01 2F EA
+I/flutter (14481): ✅ [完整帧接收] 55 A9 00 23 59 02 FF 11 01 10 2F 81 91 04 2F 81 31 02 2F D2 00 00 2F D3 00 00 2F D1 00 00 2F 70 11 01 2F 71 41 01 2F EA
+
+                                  上面收到的数据，也按照DTC规则解释

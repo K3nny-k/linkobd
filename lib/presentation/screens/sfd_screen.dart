@@ -6,6 +6,8 @@ import '../../l10n/app_localizations.dart';
 import '../view_models/bluetooth_view_model.dart';
 import '../widgets/searchable_ecu_selector.dart';
 
+
+
 class SfdScreen extends StatefulWidget {
   final BleTransport bleTransport;
 
@@ -51,10 +53,18 @@ class _SfdScreenState extends State<SfdScreen> {
   }
 
   Future<void> _copy() async {
-    final l10n = AppLocalizations.of(context);
-    final data = _viewModel.sfdReceivedData;
-    await Clipboard.setData(ClipboardData(text: data));
-    _showSnack(l10n.copied);
+    // Extract specific frame data starting from 6th byte (71 01 C0 08 24 pattern)
+    final specificData = _viewModel.getSpecificFrameDataForCopy();
+    
+    if (specificData.isNotEmpty) {
+      await Clipboard.setData(ClipboardData(text: specificData));
+      _showSnack('已复制特定帧数据: ${specificData.length > 50 ? '${specificData.substring(0, 50)}...' : specificData}');
+    } else {
+      // Fallback to copying all data if specific frame not found
+      final allData = _viewModel.sfdReceivedData;
+      await Clipboard.setData(ClipboardData(text: allData));
+      _showSnack('未找到特定帧，已复制所有数据');
+    }
   }
 
   Uint8List? sanitizeHex(String text) {
@@ -70,32 +80,66 @@ class _SfdScreenState extends State<SfdScreen> {
     return bytes;
   }
 
-  Future<void> _send() async {
-    final l10n = AppLocalizations.of(context);
-    
-    if (_viewModel.selectedEcu == null) {
-      _showSnack('Please select a device first.');
-      return;
-    }
-    
-    final bytes = sanitizeHex(_inputCtrl.text);
-    if (bytes == null) {
-      _showSnack(l10n.invalidHex);
-      return;
-    }
 
-    try {
-      debugPrint('SFD send size = ${bytes.length}');
-      await _viewModel.sendSfdData(bytes);
-      _showSnack(l10n.sentBytes(bytes.length));
-    } catch (e) {
-      _showSnack('Error: $e');
-    }
-  }
 
   void _showSnack(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(message)),
+    );
+  }
+
+
+
+  /// Send long data with framing (Python-style)
+  Future<void> _sendLongData() async {
+    if (_inputCtrl.text.trim().isEmpty) {
+      _showSnack('Please enter hex data to send as long frames');
+      return;
+    }
+
+    try {
+      _showSnack('📦 Sending long data with framing...');
+      
+      final success = await _viewModel.sendLongDataWithFraming(_inputCtrl.text.trim());
+      
+      if (success) {
+        _showSnack('🎉 Long data sent with framing and ACK received!');
+      } else {
+        _showSnack('❌ Long data framing failed - check console for details');
+      }
+    } catch (e) {
+      _showSnack('❌ Long data error: $e');
+    }
+  }
+
+  /// Widget to display SFD activation status
+  Widget _buildSfdStatusWidget(BluetoothViewModel viewModel) {
+    final status = viewModel.sfdActivationState;
+    final isActive = status['isActive'] as bool;
+    final minutes = status['minutes'] as int;
+    
+    return Container(
+      width: 65,
+      height: 45,
+      decoration: BoxDecoration(
+        color: isActive ? Colors.green.shade100 : Colors.grey.shade300,
+        border: Border.all(
+          color: isActive ? Colors.green : Colors.grey,
+          width: 2,
+        ),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Center(
+        child: Text(
+          isActive ? '${minutes.toString().padLeft(2, '0')}m' : '00',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: isActive ? Colors.green.shade800 : Colors.grey.shade600,
+            fontFamily: 'RobotoMono',
+          ),
+        ),
+      ),
     );
   }
 
@@ -122,6 +166,27 @@ class _SfdScreenState extends State<SfdScreen> {
                   const SearchableEcuSelector(),
                   const SizedBox(height: 12),
 
+                  /// -------- SFD STATUS DISPLAY --------
+                  Row(
+                    children: [
+                      const Text(
+                        'SFD Status:',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Consumer<BluetoothViewModel>(
+                        builder: (context, vm, child) {
+                          return _buildSfdStatusWidget(vm);
+                        },
+                      ),
+                      const Spacer(),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+
                   /// -------- UPPER VIEW AREA --------
                   Expanded(
                     flex: 1,
@@ -141,37 +206,63 @@ class _SfdScreenState extends State<SfdScreen> {
                   ),
                   const SizedBox(height: 12),
 
-                  /// -------- BUTTON ROW --------
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      Consumer<BluetoothViewModel>(
-                        builder: (context, vm, child) {
-                          final ready = vm.isConnected && vm.selectedEcu != null;
-                          return FilledButton(
-                            onPressed: ready ? _fetch : null,
-                            child: Text(l10n.fetch),
-                          );
-                        },
+                  /// -------- CONTROL BUTTONS --------
+                  Card(
+                    elevation: 2,
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          Expanded(
+                            child: Consumer<BluetoothViewModel>(
+                              builder: (context, vm, child) {
+                                final ready = vm.isConnected && vm.selectedEcu != null;
+                                return FilledButton.icon(
+                                  onPressed: ready ? _fetch : null,
+                                  icon: const Icon(Icons.download),
+                                  label: Text(l10n.fetch),
+                                  style: FilledButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(vertical: 12),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Consumer<BluetoothViewModel>(
+                              builder: (context, vm, child) {
+                                final ready = vm.isConnected && vm.selectedEcu != null;
+                                return FilledButton.icon(
+                                  onPressed: ready ? _copy : null,
+                                  icon: const Icon(Icons.copy),
+                                  label: Text(l10n.copy),
+                                  style: FilledButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(vertical: 12),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Consumer<BluetoothViewModel>(
+                              builder: (context, vm, child) {
+                                return FilledButton.icon(
+                                  onPressed: () => vm.clearSfdBuffer(),
+                                  icon: const Icon(Icons.clear_all),
+                                  label: Text(l10n.clear),
+                                  style: FilledButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(vertical: 12),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                        ],
                       ),
-                      Consumer<BluetoothViewModel>(
-                        builder: (context, vm, child) {
-                          final ready = vm.isConnected && vm.selectedEcu != null;
-                          return FilledButton(
-                            onPressed: ready ? _copy : null,
-                            child: Text(l10n.copy),
-                          );
-                        },
-                      ),
-                      Consumer<BluetoothViewModel>(
-                        builder: (context, vm, child) {
-                          return FilledButton(
-                            onPressed: () => vm.clearSfdBuffer(),
-                            child: Text(l10n.clear),
-                          );
-                        },
-                      ),
-                    ],
+                    ),
                   ),
                   const SizedBox(height: 12),
 
@@ -198,10 +289,16 @@ class _SfdScreenState extends State<SfdScreen> {
                   Consumer<BluetoothViewModel>(
                     builder: (context, vm, child) {
                       final ready = vm.isConnected && vm.selectedEcu != null;
-                      return FilledButton.icon(
-                        onPressed: ready ? _send : null,
-                        icon: const Icon(Icons.send),
-                        label: Text(l10n.send),
+                      return SizedBox(
+                        width: double.infinity,
+                        child: FilledButton.icon(
+                          onPressed: ready ? _sendLongData : null,
+                          icon: const Icon(Icons.send),
+                          label: const Text('Send'),
+                          style: FilledButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                          ),
+                        ),
                       );
                     },
                   ),

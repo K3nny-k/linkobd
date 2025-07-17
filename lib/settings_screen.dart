@@ -17,7 +17,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   List<ScanResult> _scanResults = [];
   StreamSubscription<List<ScanResult>>? _scanSubscription;
   bool _isScanning = false;
-  String _statusMessage = "Tap 'Scan' to find OBD devices.";
+  String _statusMessage = "Tap 'Scan' to find devices.";
   bool _permissionsGranted = false;
 
   @override
@@ -134,7 +134,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     setState(() {
       _isScanning = true;
       _scanResults = [];
-      _statusMessage = "Scanning for Nordic UART devices...";
+      _statusMessage = "Scanning for devices...";
     });
 
     _scanSubscription?.cancel();
@@ -145,14 +145,35 @@ class _SettingsScreenState extends State<SettingsScreen> {
           print("DEBUG DEVICE: Name='${result.device.platformName}' AdvName='${result.advertisementData.advName}' ID=${result.device.remoteId} RSSI=${result.rssi}");
           print("DEBUG SERVICES: ${result.advertisementData.serviceUuids.map((uuid) => uuid.toString()).join(', ')}");
         }
+        
+        // Show all devices but prioritize OBD devices
+        final filteredResults = results.toList();
+        
+        // Sort devices: OBD devices first, then others
+        filteredResults.sort((a, b) {
+          final aName = a.device.platformName.isNotEmpty ? a.device.platformName : a.advertisementData.advName;
+          final bName = b.device.platformName.isNotEmpty ? b.device.platformName : b.advertisementData.advName;
+          final aIsObd = _isObdDevice(aName);
+          final bIsObd = _isObdDevice(bName);
+          
+          if (aIsObd && !bIsObd) return -1;
+          if (!aIsObd && bIsObd) return 1;
+          
+          // If both are OBD or both are not OBD, sort by signal strength (RSSI)
+          return b.rssi.compareTo(a.rssi);
+        });
+        
         setState(() {
-          // TEMPORARILY SHOW ALL DEVICES FOR DEBUGGING (including unnamed ones)
-          _scanResults = results.toList();
-          print("DEBUG: After filtering, showing ${_scanResults.length} devices");
+          _scanResults = filteredResults;
+          print("DEBUG: Showing ${_scanResults.length} devices");
           if (_scanResults.isEmpty && _isScanning) {
-            _statusMessage = "DEBUG MODE: No named devices found yet... Found ${results.length} total devices. Check console.";
-          } else if (_scanResults.isNotEmpty) {
-            _statusMessage = "DEBUG MODE: Select a device to connect (Found ${results.length} total):";
+            final obdCount = filteredResults.where((r) => 
+              _isObdDevice(r.device.platformName.isNotEmpty ? r.device.platformName : r.advertisementData.advName)).length;
+            _statusMessage = "Scanning for devices... Found ${results.length} total devices${obdCount > 0 ? " ($obdCount OBD devices)" : ""}.";
+                      } else if (_scanResults.isNotEmpty) {
+              final obdCount = filteredResults.where((r) => 
+                _isObdDevice(r.device.platformName.isNotEmpty ? r.device.platformName : r.advertisementData.advName)).length;
+              _statusMessage = "Found ${_scanResults.length} device(s)${obdCount > 0 ? " ($obdCount OBD devices shown first)" : ""}. Select one to connect:";
           }
         });
       }
@@ -192,8 +213,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (mounted) {
       setState(() {
         _isScanning = false;
-        if (_scanResults.isEmpty) _statusMessage = "Scan stopped. No devices found.";
-        else _statusMessage = "Scan stopped. Select a device.";
+        if (_scanResults.isEmpty) {
+          _statusMessage = "Scan stopped. No devices found.";
+        } else {
+          _statusMessage = "Scan stopped. Select a device.";
+        }
       });
     }
   }
@@ -219,6 +243,41 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
+  /// Check if device name indicates it's an OBD device
+  bool _isObdDevice(String deviceName) {
+    final name = deviceName.toLowerCase();
+    
+    // Common OBD device name patterns
+    final obdPatterns = [
+      'obd',           // Generic OBD
+      'obdii',         // OBD-II
+      'obd-ii',        // OBD-II with dash
+      'obd2',          // OBD2
+      'elm327',        // Popular OBD chip
+      'elm',           // Short version
+      'can',           // CAN bus devices
+      'ble_obd',       // BLE OBD devices
+      'x_ble_obd',     // Specific pattern user mentioned
+      'diagnostic',    // Diagnostic devices
+      'scanner',       // Scanner devices
+      'auto',          // Auto-related devices
+      'car',           // Car-related devices
+      'vehicle',       // Vehicle devices
+      'torque',        // Torque app compatible
+      'ecu',           // ECU devices
+      'j1979',         // OBD standard
+    ];
+    
+    // Check if device name contains any OBD-related patterns
+    for (final pattern in obdPatterns) {
+      if (name.contains(pattern)) {
+        return true;
+      }
+    }
+    
+    return false;
+  }
+
   @override
   void dispose() {
     _stopScan();
@@ -239,7 +298,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             padding: const EdgeInsets.all(16.0),
             child: ElevatedButton.icon(
               icon: Icon(_isScanning ? Icons.bluetooth_searching : Icons.bluetooth),
-              label: Text(_isScanning ? 'Stop Scan' : 'Scan for OBD Devices'),
+              label: Text(_isScanning ? 'Stop Scan' : 'Scan for Devices'),
               onPressed: _isScanning ? _stopScan : _startScan,
               style: ElevatedButton.styleFrom(minimumSize: const Size(double.infinity, 40)),
             ),
@@ -272,8 +331,34 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     : (result.advertisementData.advName.isNotEmpty
                         ? result.advertisementData.advName
                         : "Unknown Device");
+                final isObdDevice = _isObdDevice(deviceName);
+                
                 return ListTile(
-                  title: Text(deviceName),
+                  leading: Icon(
+                    isObdDevice ? Icons.car_rental : Icons.bluetooth,
+                    color: isObdDevice ? Colors.green : Colors.blue,
+                  ),
+                  title: Row(
+                    children: [
+                      Expanded(child: Text(deviceName)),
+                      if (isObdDevice) 
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Colors.green,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Text(
+                            'OBD',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
                   subtitle: Text(result.device.remoteId.toString()),
                   trailing: Text("${result.rssi} dBm"),
                   onTap: () => _connectToDevice(result.device),

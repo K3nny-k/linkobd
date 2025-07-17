@@ -30,4 +30,6 @@ Node,ecu_id,us_en
 1C,001C,Suspension Control
 1D,001D,Side Assist
 1E,001E,Media Player
-1F,001F,Special Vehicle Equipment 
+1F,001F,Special Vehicle Equipment
+20,0020,gateway
+21,0021,headunit 

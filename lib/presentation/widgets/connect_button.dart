@@ -29,7 +29,7 @@ class ConnectButton extends StatelessWidget {
                     onPressed: null, // Disabled when connected
                     icon: const Icon(Icons.bluetooth_connected),
                     label: Text(
-                      deviceName ?? 'Connected',
+                      deviceName != null ? 'Connected to $deviceName' : 'Connected',
                       overflow: TextOverflow.ellipsis,
                     ),
                     style: FilledButton.styleFrom(
@@ -53,8 +53,8 @@ class ConnectButton extends StatelessWidget {
             )
           : FilledButton.icon(
               onPressed: onConnect,
-              icon: const Icon(Icons.bluetooth),
-              label: const Text('Connect'),
+              icon: const Icon(Icons.bluetooth_disabled),
+              label: const Text('Not connected - Tap to connect'),
               style: FilledButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 minimumSize: const Size(double.infinity, 56),

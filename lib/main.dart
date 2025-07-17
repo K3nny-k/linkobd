@@ -6,6 +6,9 @@ import 'presentation/screens/app_settings_screen.dart';
 import 'presentation/screens/connect_screen.dart';
 import 'presentation/screens/hex_console_screen.dart';
 import 'presentation/screens/sfd_screen.dart';
+import 'presentation/screens/maintenance_reset_screen.dart';
+import 'presentation/screens/diagnosis_screen.dart';
+
 import 'ble_transport.dart';
 
 void main() {
@@ -37,7 +40,8 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'OBD-II Scanner',
+      title: 'OBD-II Tool for VW/Audi/Porsche',
+      debugShowCheckedModeBanner: false,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
       theme: ThemeData(
@@ -61,6 +65,16 @@ class MyApp extends StatelessWidget {
           // Extract BleTransport from arguments
           final bleTransport = ModalRoute.of(context)!.settings.arguments as BleTransport;
           return SfdScreen(bleTransport: bleTransport);
+        },
+        '/maintenance_reset': (context) {
+          // Extract BleTransport from arguments
+          final bleTransport = ModalRoute.of(context)!.settings.arguments as BleTransport;
+          return MaintenanceResetScreen(bleTransport: bleTransport);
+        },
+        '/diagnosis': (context) {
+          // Extract BleTransport from arguments
+          final bleTransport = ModalRoute.of(context)!.settings.arguments as BleTransport;
+          return DiagnosisScreen(bleTransport: bleTransport);
         },
       },
     );
