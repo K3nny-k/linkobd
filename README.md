@@ -186,3 +186,4 @@ If you encounter any issues or have questions:
 ---
 
 **Note**: This app is for educational and diagnostic purposes. Always follow local regulations when using OBD-II diagnostic tools.
+# linkobd
