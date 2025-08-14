@@ -90,12 +90,12 @@ BEGIN
         BLOCK "040904e4"
         BEGIN
             VALUE "CompanyName", "com.k3nny" "\0"
-            VALUE "FileDescription", "linkobd" "\0"
+            VALUE "FileDescription", "BlinkOBD" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "linkobd" "\0"
+            VALUE "InternalName", "BlinkOBD" "\0"
             VALUE "LegalCopyright", "Copyright (C) 2025 com.k3nny. All rights reserved." "\0"
-            VALUE "OriginalFilename", "linkobd.exe" "\0"
-            VALUE "ProductName", "linkobd" "\0"
+            VALUE "OriginalFilename", "BlinkOBD.exe" "\0"
+            VALUE "ProductName", "BlinkOBD" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END
