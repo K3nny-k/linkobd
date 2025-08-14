@@ -1,30 +1,30 @@
-[English](README_EN.md) | [中文](README.md)
+[English](README.md) | [中文](README_CN.md)
 
 ## LinkOBD
 
-一款面向车主与维修人员的车载诊断应用。通过蓝牙低功耗（BLE）连接 OBD‑II 适配器，查看车辆实时数据、进行基础诊断，并提供高级的十六进制控制台与 SFD 功能。
+LinkOBD is a user-friendly OBD‑II diagnostic app for car owners and technicians. It connects to OBD‑II adapters over Bluetooth Low Energy (BLE) to display real‑time vehicle data, perform basic diagnostics, and offers advanced tools like a Hex Console and SFD features.
 
-### 主要功能
-- **蓝牙连接**：支持通过 BLE 连接常见 OBD‑II 适配器
-- **实时监控**：查看关键车辆数据与状态
-- **故障诊断**：进入诊断页面读取/查看相关信息
-- **Hex 控制台**：发送十六进制指令并查看原始返回
-- **SFD 功能**：面向进阶用户的 ECU 数据读取能力
-- **多语言**：支持中文与英文
-- **深色/浅色主题**：跟随系统外观
+### Key Features
+- Bluetooth connection to common OBD‑II BLE adapters
+- Real‑time data monitoring for key vehicle parameters
+- Diagnostic screens for quick checks
+- Hex Console for sending raw hex commands and viewing responses
+- SFD capabilities for advanced ECU data access
+- Multi‑language support: English and Chinese
+- Light/Dark theme following system setting
 
-### 快速上手
-1. 打开手机蓝牙，并授予应用所需权限
-2. 启动 LinkOBD，进入首页点击“连接”
-3. 在列表中选择你的 OBD‑II 适配器并等待连接完成
-4. 根据需要进入“诊断”、“维护复位”、“SFD”或“Hex 控制台”等功能页面
+### Get Started
+1. Enable Bluetooth on your device and grant required permissions
+2. Open LinkOBD and tap “Connect” on the home screen
+3. Select your OBD‑II adapter from the list and wait for the connection
+4. Navigate to “Diagnosis”, “Maintenance Reset”, “SFD”, or “Hex Console” as needed
 
-### 兼容性与设备
-- 需要支持 BLE 的 OBD‑II 蓝牙适配器
-- 建议使用支持 BLE 的智能手机/平板
+### Compatibility
+- Requires an OBD‑II Bluetooth adapter that supports BLE
+- Recommended to use a smartphone/tablet with BLE support
 
-### 截图
-后续补充
+### Screenshots
+Coming soon
 
-### 免责声明
-本应用仅用于车辆诊断与学习交流，请在安全、合法的前提下使用。行车过程中请勿操作应用。
+### Disclaimer
+This app is for vehicle diagnostics and educational purposes only. Use responsibly and comply with local regulations. Do not operate the app while driving.

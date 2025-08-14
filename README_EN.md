@@ -1,4 +1,4 @@
-[English](README_EN.md) | [中文](README.md)
+[English](README.md) | [中文](README_CN.md)
 
 ## LinkOBD
 
