@@ -1,6 +1,6 @@
 {
-    "name": "linkobd",
-    "short_name": "linkobd",
+    "name": "BlinkOBD",
+    "short_name": "BlinkOBD",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#5D8AA8",

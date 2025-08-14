@@ -1,8 +1,8 @@
 [English](README.md) | [中文](README_CN.md)
 
-## LinkOBD
+## BlinkOBD
 
-LinkOBD is a user-friendly OBD‑II diagnostic app for car owners and technicians. It connects to OBD‑II adapters over Bluetooth Low Energy (BLE) to display real‑time vehicle data, perform basic diagnostics, and offers advanced tools like a Hex Console and SFD features.
+BlinkOBD is a user-friendly OBD‑II diagnostic app for car owners and technicians. It connects to OBD‑II adapters over Bluetooth Low Energy (BLE) to display real‑time vehicle data, perform basic diagnostics, and offers advanced tools like a Hex Console and SFD features.
 
 ### Key Features
 - Bluetooth connection to common OBD‑II BLE adapters
@@ -15,7 +15,7 @@ LinkOBD is a user-friendly OBD‑II diagnostic app for car owners and technician
 
 ### Get Started
 1. Enable Bluetooth on your device and grant required permissions
-2. Open LinkOBD and tap “Connect” on the home screen
+2. Open BlinkOBD and tap “Connect” on the home screen
 3. Select your OBD‑II adapter from the list and wait for the connection
 4. Navigate to “Diagnosis”, “Maintenance Reset”, “SFD”, or “Hex Console” as needed
 
