@@ -40,7 +40,7 @@ class _SfdScreenState extends State<SfdScreen> {
     final l10n = AppLocalizations.of(context);
     
     if (_viewModel.selectedEcu == null) {
-      _showSnack('Please select a device first.');
+      _showSnack(l10n.pleaseSelectDeviceFirst);
       return;
     }
     
@@ -156,7 +156,7 @@ class _SfdScreenState extends State<SfdScreen> {
           
           return Scaffold(
             appBar: AppBar(
-              title: const Text('SFD'),
+              title: Text(l10n.sfd),
             ),
             body: Padding(
               padding: const EdgeInsets.all(16),
@@ -169,9 +169,9 @@ class _SfdScreenState extends State<SfdScreen> {
                   /// -------- SFD STATUS DISPLAY --------
                   Row(
                     children: [
-                      const Text(
-                        'SFD Status:',
-                        style: TextStyle(
+                      Text(
+                        '${l10n.sfdStatus}:',
+                        style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w500,
                         ),

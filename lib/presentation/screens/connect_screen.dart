@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import '../../ble_transport.dart';
+import '../../l10n/app_localizations.dart';
 
 class ConnectScreen extends StatefulWidget {
   final BleTransport bleTransport;
@@ -113,6 +114,14 @@ class _ConnectScreenState extends State<ConnectScreen> {
     }
   }
 
+  void _stopScanQuiet() {
+    print("📱 Quietly stopping scan without setState");
+    widget.bleTransport.stopScan();
+    _scanSubscription?.cancel();
+    _scanSubscription = null;
+    _isScanning = false;
+  }
+
   Future<void> _connectToDevice(BluetoothDevice device) async {
     if (_connectingDeviceId != null) {
       print("⚠️ Already connecting to a device, ignoring");
@@ -132,7 +141,7 @@ class _ConnectScreenState extends State<ConnectScreen> {
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Connecting...')),
+          SnackBar(content: Text(AppLocalizations.of(context).connecting)),
       );
     }
 
@@ -153,7 +162,7 @@ class _ConnectScreenState extends State<ConnectScreen> {
         } else {
           print("📱 Connection failed, showing error");
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Connection failed')),
+            SnackBar(content: Text(AppLocalizations.of(context).connectionFailed)),
           );
         }
       } else {
@@ -168,7 +177,7 @@ class _ConnectScreenState extends State<ConnectScreen> {
           _connectingDeviceId = null;
         });
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Connection failed: $e')),
+          SnackBar(content: Text('${AppLocalizations.of(context).connectionFailed}: $e')),
         );
       }
     }
@@ -223,7 +232,7 @@ class _ConnectScreenState extends State<ConnectScreen> {
   @override
   void dispose() {
     print("📱 ConnectScreen disposing");
-    _stopScan();
+    _stopScanQuiet();
     super.dispose();
   }
 
@@ -234,24 +243,23 @@ class _ConnectScreenState extends State<ConnectScreen> {
     
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Connect'),
-        backgroundColor: theme.colorScheme.inversePrimary,
+        title: Text(AppLocalizations.of(context).connect),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: _isScanning ? null : _startScan,
-            tooltip: 'Refresh',
+            tooltip: AppLocalizations.of(context).refresh,
           ),
         ],
       ),
       body: _isScanning && _scanResults.isEmpty
-          ? const Center(
+          ? Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  CircularProgressIndicator(),
-                  SizedBox(height: 16),
-                  Text('Scanning for devices...'),
+                  const CircularProgressIndicator(),
+                  const SizedBox(height: 16),
+                  Text(AppLocalizations.of(context).scanningForDevices),
                 ],
               ),
             )
@@ -262,11 +270,11 @@ class _ConnectScreenState extends State<ConnectScreen> {
                     children: [
                       const Icon(Icons.bluetooth_disabled, size: 64, color: Colors.grey),
                       const SizedBox(height: 16),
-                      const Text('No devices found'),
+                      Text(AppLocalizations.of(context).noDevicesFound),
                       const SizedBox(height: 16),
                       ElevatedButton.icon(
                         icon: const Icon(Icons.refresh),
-                        label: const Text('Scan Again'),
+                        label: Text(AppLocalizations.of(context).scanAgain),
                         onPressed: _startScan,
                       ),
                     ],

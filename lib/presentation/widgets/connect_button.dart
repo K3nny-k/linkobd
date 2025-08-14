@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../l10n/app_localizations.dart';
 
 class ConnectButton extends StatelessWidget {
   final bool isConnected;
@@ -17,6 +18,7 @@ class ConnectButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     
     return Container(
       width: double.infinity,
@@ -29,7 +31,7 @@ class ConnectButton extends StatelessWidget {
                     onPressed: null, // Disabled when connected
                     icon: const Icon(Icons.bluetooth_connected),
                     label: Text(
-                      deviceName != null ? 'Connected to $deviceName' : 'Connected',
+                      deviceName != null ? '${l10n.connected} $deviceName' : l10n.connected,
                       overflow: TextOverflow.ellipsis,
                     ),
                     style: FilledButton.styleFrom(
@@ -43,7 +45,7 @@ class ConnectButton extends StatelessWidget {
                 IconButton.filled(
                   onPressed: onDisconnect,
                   icon: const Icon(Icons.close),
-                  tooltip: 'Disconnect',
+                  tooltip: l10n.disconnect,
                   style: IconButton.styleFrom(
                     backgroundColor: theme.colorScheme.error,
                     foregroundColor: theme.colorScheme.onError,
@@ -54,7 +56,7 @@ class ConnectButton extends StatelessWidget {
           : FilledButton.icon(
               onPressed: onConnect,
               icon: const Icon(Icons.bluetooth_disabled),
-              label: const Text('Not connected - Tap to connect'),
+              label: Text(l10n.notConnected),
               style: FilledButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 minimumSize: const Size(double.infinity, 56),

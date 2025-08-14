@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../ble_transport.dart';
 import '../view_models/bluetooth_view_model.dart';
+import '../../l10n/app_localizations.dart';
 
 class MaintenanceResetScreen extends StatefulWidget {
   final BleTransport bleTransport;
@@ -55,6 +56,7 @@ class _MaintenanceResetScreenState extends State<MaintenanceResetScreen> {
   void _showMaintenanceReminder() {
     if (!_hasShownReminder && mounted) {
       _hasShownReminder = true;
+      final l10n = AppLocalizations.of(context);
       
       // Show reminder dialog
       showDialog(
@@ -66,16 +68,16 @@ class _MaintenanceResetScreenState extends State<MaintenanceResetScreen> {
               color: Colors.orange[600],
               size: 48,
             ),
-            title: const Text(
-              '重要提醒',
-              style: TextStyle(
+            title: Text(
+              l10n.importantNotice,
+              style: const TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: 20,
               ),
             ),
-            content: const Text(
-              '保养复位请先打开引擎盖',
-              style: TextStyle(
+            content: Text(
+              l10n.openEngineHood,
+              style: const TextStyle(
                 fontSize: 16,
               ),
             ),
@@ -84,9 +86,9 @@ class _MaintenanceResetScreenState extends State<MaintenanceResetScreen> {
                 onPressed: () {
                   Navigator.of(context).pop();
                 },
-                child: const Text(
-                  '确定',
-                  style: TextStyle(
+                child: Text(
+                  l10n.ok,
+                  style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
                   ),
@@ -117,6 +119,7 @@ class _MaintenanceResetScreenState extends State<MaintenanceResetScreen> {
   // Button 1: Close Diagnostic Firewall
   Future<void> _closeDiagnosticFirewall() async {
     if (_isFirewallProcessing) return;
+    final l10n = AppLocalizations.of(context);
     
     setState(() {
       _isFirewallProcessing = true;
@@ -132,16 +135,16 @@ class _MaintenanceResetScreenState extends State<MaintenanceResetScreen> {
       
       switch (statusStr) {
         case 'no_action_needed':
-          _showMessage('Diagnostic firewall: No action needed');
+          _showMessage('${l10n.diagnosticFirewall}: ${l10n.noActionNeeded}');
           break;
         case 'closed':
-          _showMessage('Diagnostic firewall closed successfully');
+          _showMessage('${l10n.diagnosticFirewall} ${l10n.closed}');
           break;
         case 'open':
-          _showMessage('Diagnostic firewall is still open');
+          _showMessage('${l10n.diagnosticFirewall} ${l10n.open}');
           break;
         default:
-          _showMessage('Diagnostic firewall status unknown');
+          _showMessage('${l10n.diagnosticFirewall} ${l10n.statusUnknown}');
           break;
       }
     } catch (e) {
@@ -156,6 +159,7 @@ class _MaintenanceResetScreenState extends State<MaintenanceResetScreen> {
   // Button 2: Kombi 17 Reset
   Future<void> _resetKombi17() async {
     if (_isKombiProcessing) return;
+    final l10n = AppLocalizations.of(context);
     
     setState(() {
       _isKombiProcessing = true;
@@ -164,7 +168,7 @@ class _MaintenanceResetScreenState extends State<MaintenanceResetScreen> {
 
     try {
       await _viewModel.resetKombi17();
-      _showMessage('Kombi 17 reset completed successfully');
+      _showMessage('Kombi 17 ${l10n.resetComplete}');
     } catch (e) {
       _showMessage('Failed to reset Kombi 17: $e');
     } finally {
@@ -198,15 +202,16 @@ class _MaintenanceResetScreenState extends State<MaintenanceResetScreen> {
   // Button 4: Close Transport Mode
   Future<void> _closeTransportMode() async {
     if (_isClosingTransportMode) return;
+    final l10n = AppLocalizations.of(context);
     
     setState(() {
       _isClosingTransportMode = true;
-      _statusMessage = 'Closing transport mode...';
+      _statusMessage = l10n.closingTransportMode;
     });
 
     try {
       await _viewModel.closeTransportMode();
-      _showMessage('Transport mode closed successfully');
+      _showMessage(l10n.transportModeClosed);
     } catch (e) {
       _showMessage('Failed to close transport mode: $e');
     } finally {
@@ -219,10 +224,11 @@ class _MaintenanceResetScreenState extends State<MaintenanceResetScreen> {
   // Query Transport Mode Status
   Future<void> _queryTransportModeStatus() async {
     if (_isQueryingTransportMode) return;
+    final l10n = AppLocalizations.of(context);
     
     setState(() {
       _isQueryingTransportMode = true;
-      _statusMessage = 'Querying transport mode status...';
+      _statusMessage = l10n.queryingTransportMode;
     });
 
     try {
@@ -234,13 +240,13 @@ class _MaintenanceResetScreenState extends State<MaintenanceResetScreen> {
       
       switch (statusStr) {
         case 'not_activated':
-          _showMessage('Transport mode: Not activated');
+          _showMessage(l10n.transportModeNotActivated);
           break;
         case 'activated':
-          _showMessage('Transport mode: Activated');
+          _showMessage(l10n.transportModeActivated);
           break;
         default:
-          _showMessage('Transport mode status: Unknown');
+          _showMessage(l10n.transportModeStatusUnknown);
           break;
       }
     } catch (e) {
@@ -253,6 +259,7 @@ class _MaintenanceResetScreenState extends State<MaintenanceResetScreen> {
   }
 
   Widget _buildFirewallStatusWidget(BluetoothViewModel viewModel) {
+    final l10n = AppLocalizations.of(context);
     final firewallStatus = viewModel.diagnosticFirewallStatus;
     Color statusColor;
     String statusText;
@@ -260,20 +267,20 @@ class _MaintenanceResetScreenState extends State<MaintenanceResetScreen> {
     switch (firewallStatus['status']) {
       case 'closed':
         statusColor = Colors.green;
-        statusText = '防火墙关闭'; // Firewall Closed
+        statusText = l10n.firewallClosed;
         break;
       case 'open':
         statusColor = Colors.red;
-        statusText = '防火墙开启'; // Firewall Open
+        statusText = l10n.firewallOpen;
         break;
       case 'no_action_needed':
         statusColor = Colors.blue;
-        statusText = '无需处理'; // No Action Needed
+        statusText = l10n.noActionNeeded;
         break;
       case 'unknown':
       default:
         statusColor = Colors.grey;
-        statusText = '状态未知'; // Status Unknown
+        statusText = l10n.statusUnknown;
         break;
     }
 
@@ -295,6 +302,7 @@ class _MaintenanceResetScreenState extends State<MaintenanceResetScreen> {
   }
 
   Widget _buildTransportModeStatusWidget(BluetoothViewModel viewModel) {
+    final l10n = AppLocalizations.of(context);
     final transportStatus = viewModel.transportModeStatus;
     Color statusColor;
     String statusText;
@@ -302,16 +310,16 @@ class _MaintenanceResetScreenState extends State<MaintenanceResetScreen> {
     switch (transportStatus['status']) {
       case 'not_activated':
         statusColor = Colors.green;
-        statusText = '运输模式未激活'; // Transport Mode Not Activated
+        statusText = l10n.transportModeNotActivated;
         break;
       case 'activated':
         statusColor = Colors.red;
-        statusText = '运输模式激活'; // Transport Mode Activated
+        statusText = l10n.transportModeActivated;
         break;
       case 'unknown':
       default:
         statusColor = Colors.blue;
-        statusText = '失败，检查SFD重试'; // Failed, Check SFD Retry
+        statusText = l10n.failedCheckSFD;
         break;
     }
 
@@ -335,6 +343,7 @@ class _MaintenanceResetScreenState extends State<MaintenanceResetScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     
     return ChangeNotifierProvider.value(
       value: _viewModel,
@@ -342,8 +351,7 @@ class _MaintenanceResetScreenState extends State<MaintenanceResetScreen> {
         builder: (context, vm, child) {
           return Scaffold(
             appBar: AppBar(
-              title: const Text('保养复位'), // Maintenance Reset
-              backgroundColor: theme.colorScheme.inversePrimary,
+              title: Text(l10n.maintenanceReset),
             ),
             body: SingleChildScrollView(
               padding: const EdgeInsets.all(16),
@@ -377,20 +385,20 @@ class _MaintenanceResetScreenState extends State<MaintenanceResetScreen> {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              const Expanded(
+                                                        Expanded(
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      '关闭诊断防火墙',
-                                      style: TextStyle(
+                                  l10n.diagnosticFirewall,
+                                  style: const TextStyle(
                                         fontSize: 16,
                                         fontWeight: FontWeight.bold,
                                       ),
                                     ),
                                     Text(
-                                      'Close Diag Firewall',
-                                      style: TextStyle(
+                                  l10n.disableFirewall,
+                                  style: const TextStyle(
                                         fontSize: 14,
                                         color: Colors.grey,
                                       ),
@@ -416,7 +424,7 @@ class _MaintenanceResetScreenState extends State<MaintenanceResetScreen> {
                                           child: CircularProgressIndicator(strokeWidth: 2),
                                         )
                                       : const Icon(Icons.security),
-                                  label: const Text('执行'),
+                                  label: Text(l10n.execute),
                                   style: ElevatedButton.styleFrom(
                                     padding: const EdgeInsets.symmetric(vertical: 12),
                                   ),
@@ -438,19 +446,19 @@ class _MaintenanceResetScreenState extends State<MaintenanceResetScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Column(
+                          Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                '仪表模块',
-                                style: TextStyle(
+                                l10n.instrumentClusterReset,
+                                style: const TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
                               Text(
-                                'Kombi 17',
-                                style: TextStyle(
+                                l10n.resetKombi17,
+                                style: const TextStyle(
                                   fontSize: 14,
                                   color: Colors.grey,
                                 ),
@@ -472,7 +480,7 @@ class _MaintenanceResetScreenState extends State<MaintenanceResetScreen> {
                                           child: CircularProgressIndicator(strokeWidth: 2),
                                         )
                                       : const Icon(Icons.speed),
-                                  label: const Text('复位'),
+                                  label: const Text('Reset'),
                                   style: ElevatedButton.styleFrom(
                                     padding: const EdgeInsets.symmetric(vertical: 12),
                                   ),
@@ -494,19 +502,19 @@ class _MaintenanceResetScreenState extends State<MaintenanceResetScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Column(
+                          Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                '音响主机',
-                                style: TextStyle(
+                                l10n.audioHeadUnitReset,
+                                style: const TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
                               Text(
-                                'Headunit 5F',
-                                style: TextStyle(
+                                l10n.resetHeadunit5F,
+                                style: const TextStyle(
                                   fontSize: 14,
                                   color: Colors.grey,
                                 ),
@@ -528,7 +536,7 @@ class _MaintenanceResetScreenState extends State<MaintenanceResetScreen> {
                                           child: CircularProgressIndicator(strokeWidth: 2),
                                         )
                                       : const Icon(Icons.audio_file),
-                                  label: const Text('复位'),
+                                  label: const Text('Reset'),
                                   style: ElevatedButton.styleFrom(
                                     padding: const EdgeInsets.symmetric(vertical: 12),
                                   ),
@@ -553,20 +561,20 @@ class _MaintenanceResetScreenState extends State<MaintenanceResetScreen> {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              const Expanded(
+                              Expanded(
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      '解除运输模式',
-                                      style: TextStyle(
+                                      l10n.transportModeClose,
+                                      style: const TextStyle(
                                         fontSize: 16,
                                         fontWeight: FontWeight.bold,
                                       ),
                                     ),
                                     Text(
-                                      'Close Trans Mode',
-                                      style: TextStyle(
+                                      l10n.disableTransportMode,
+                                      style: const TextStyle(
                                         fontSize: 14,
                                         color: Colors.grey,
                                       ),
@@ -594,7 +602,7 @@ class _MaintenanceResetScreenState extends State<MaintenanceResetScreen> {
                                               child: CircularProgressIndicator(strokeWidth: 2),
                                             )
                                           : const Icon(Icons.search),
-                                      label: const Text('查询'),
+                                      label: Text(l10n.query),
                                       style: ElevatedButton.styleFrom(
                                         padding: const EdgeInsets.symmetric(vertical: 12),
                                         backgroundColor: Colors.blue,
@@ -614,7 +622,7 @@ class _MaintenanceResetScreenState extends State<MaintenanceResetScreen> {
                                               child: CircularProgressIndicator(strokeWidth: 2),
                                             )
                                           : const Icon(Icons.local_shipping),
-                                      label: const Text('解除'),
+                                      label: Text(l10n.close),
                                       style: ElevatedButton.styleFrom(
                                         padding: const EdgeInsets.symmetric(vertical: 12),
                                       ),

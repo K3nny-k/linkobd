@@ -6,6 +6,7 @@ import '../../obd_service.dart';
 import '../../data/bridge/bridge_service.dart';
 import '../widgets/function_card.dart';
 import '../widgets/connect_button.dart';
+import '../../l10n/app_localizations.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -182,14 +183,16 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _onFunctionTap(String function) {
+    final l10n = AppLocalizations.of(context);
+    
     // Settings should be accessible without connection
     if (function == 'Settings') {
-      Navigator.pushNamed(context, '/app_settings');
+      Navigator.pushNamed(context, '/app_settings', arguments: _bleTransport);
       return;
     }
     
-    // Hex Console should be accessible without connection (it will show a warning)
-    if (function == 'Hex Console') {
+    // UDS DIAG should be accessible without connection (it will show a warning)
+    if (function == 'UDS DIAG') {
       Navigator.pushNamed(context, '/hex_console', arguments: _bleTransport);
       return;
     }
@@ -197,7 +200,7 @@ class _HomeScreenState extends State<HomeScreen> {
     // Other functions require connection
     if (!_isConnected) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please connect to a device first')),
+        SnackBar(content: Text(l10n.pleaseConnectDeviceFirst)),
       );
       return;
     }
@@ -213,9 +216,8 @@ class _HomeScreenState extends State<HomeScreen> {
       case 'Maintenance Reset':
         Navigator.pushNamed(context, '/maintenance_reset', arguments: _bleTransport);
         break;
-      case 'Read/Write Config':
-        // TODO: Navigate to Read/Write Config screen
-        _showComingSoon('Read/Write Config');
+      case 'Reset/Clear DTC':
+        Navigator.pushNamed(context, '/config', arguments: _bleTransport);
         break;
     }
   }
@@ -277,11 +279,11 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     
     return Scaffold(
       appBar: AppBar(
-        title: const Text('OBD Tool for VW/Audi/Porsche'),
-        backgroundColor: theme.colorScheme.inversePrimary,
+        title: Text(l10n.appTitle),
         centerTitle: true,
       ),
       body: Column(
@@ -297,34 +299,34 @@ class _HomeScreenState extends State<HomeScreen> {
                 childAspectRatio: 1.2,
                 children: [
                   FunctionCard(
-                    title: 'Settings',
+                    title: l10n.settings,
                     icon: Icons.settings,
                     onTap: () => _onFunctionTap('Settings'),
                   ),
                   FunctionCard(
-                    title: 'Diagnosis',
+                    title: l10n.diagnosis,
                     icon: Icons.medical_services,
                     onTap: () => _onFunctionTap('Diagnosis'),
                   ),
                   FunctionCard(
-                    title: 'SFD',
+                    title: l10n.sfd,
                     icon: Icons.storage,
                     onTap: () => _onFunctionTap('SFD'),
                   ),
                   FunctionCard(
-                    title: 'Maintenance Reset',
+                    title: l10n.maintenanceReset,
                     icon: Icons.build,
                     onTap: () => _onFunctionTap('Maintenance Reset'),
                   ),
                   FunctionCard(
-                    title: 'Read/Write Config',
+                    title: l10n.resetClearDtc,
                     icon: Icons.edit_document,
-                    onTap: () => _onFunctionTap('Read/Write Config'),
+                    onTap: () => _onFunctionTap('Reset/Clear DTC'),
                   ),
                   FunctionCard(
-                    title: 'Hex Console',
+                    title: l10n.udsDiag,
                     icon: Icons.code,
-                    onTap: () => _onFunctionTap('Hex Console'),
+                    onTap: () => _onFunctionTap('UDS DIAG'),
                   ),
                 ],
               ),

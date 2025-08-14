@@ -31,21 +31,25 @@ class BleTransport {
   bool get isConnected => _connectedDevice != null && _writeCharacteristic != null;
 
   Future<void> _ensureConnected() async {
+    try {
     if (_connectedDevice == null || _writeCharacteristic == null) {
+        print('⚠️ BLE not connected: device=$_connectedDevice, write=$_writeCharacteristic');
       throw Exception('BLE not connected');
     }
     
     // Check real-time connection state
-    try {
       final currentState = await _connectedDevice!.connectionState.first.timeout(const Duration(seconds: 1));
       if (currentState != BluetoothConnectionState.connected) {
+        print('⚠️ BLE link lost, current state: $currentState');
         _connectedDevice = null;
         _writeCharacteristic = null;
         _notifyCharacteristic = null;
         _connectionStateController.add(BluetoothConnectionState.disconnected);
         throw Exception('BLE link lost');
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
+      print('💥 _ensureConnected error: $e');
+      print('💥 Stack trace: $stackTrace');
       _connectedDevice = null;
       _writeCharacteristic = null;
       _notifyCharacteristic = null;

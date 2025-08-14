@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../ble_transport.dart';
 import '../view_models/bluetooth_view_model.dart';
 import '../widgets/searchable_ecu_selector.dart';
+import '../../l10n/app_localizations.dart';
 
 class DiagnosisScreen extends StatefulWidget {
   final BleTransport bleTransport;
@@ -40,13 +41,17 @@ class _DiagnosisScreenState extends State<DiagnosisScreen> {
         // Show incremental updates during diagnosis
         final newData = currentData.substring(_initialBufferData.length);
         if (newData.isNotEmpty && mounted) {
-          setState(() {
-            // Don't overwrite the structured diagnosis results
-            if (!_receivedMessages.contains('=== DIAGNOSIS STARTED ===')) {
-              _receivedMessages += newData + '\n';
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) {
+              setState(() {
+                // Don't overwrite the structured diagnosis results
+                if (!_receivedMessages.contains('=== DIAGNOSIS STARTED ===')) {
+                  _receivedMessages += '$newData\n';
+                }
+              });
+              _scrollToBottom();
             }
           });
-          _scrollToBottom();
         }
       }
     }
@@ -82,6 +87,7 @@ class _DiagnosisScreenState extends State<DiagnosisScreen> {
   String _processDiagnosisResults(String rawResults) {
     if (rawResults.isEmpty) return '';
     
+    final l10n = AppLocalizations.of(context);
     final lines = rawResults.split('\n');
     final Map<String, String> diagnosisData = {};
     int frameIndex = 0;
@@ -104,10 +110,10 @@ class _DiagnosisScreenState extends State<DiagnosisScreen> {
           if (hexBytes.length >= 4 && hexBytes[0] == '55' && hexBytes[1] == 'A9') {
             final payload = hexBytes.skip(4).join(' ');
             if (payload.isNotEmpty) {
-              final category = _getDiagnosisCategory(frameIndex);
+              final category = _getDiagnosisCategory(frameIndex, l10n);
               
               // Special handling for DTC data
-              if (category == 'DTC Status 04' || category == 'DTC Status 08') {
+              if (category == '${l10n.dtcStatus} 04' || category == '${l10n.dtcStatus} 08') {
                 final dtcText = _parseDTC(hexData);
                 if (dtcText.isNotEmpty && !dtcText.contains('Error')) {
                   diagnosisData[category] = dtcText;
@@ -167,24 +173,24 @@ class _DiagnosisScreenState extends State<DiagnosisScreen> {
   }
 
   // Get category name for diagnosis frame
-  String _getDiagnosisCategory(int frameIndex) {
+  String _getDiagnosisCategory(int frameIndex, AppLocalizations l10n) {
     switch (frameIndex) {
-      case 0: return 'Session Status';
-      case 1: return 'VIN';
-      case 2: return 'Vehicle Info';
-      case 3: return 'Serial Number';
-      case 4: return 'VIN Extended';
-      case 5: return 'Calibration ID';
-      case 6: return 'System Name';
-      case 7: return 'Development Data';
-      case 8: return 'Active Diagnostic Info';
-      case 9: return 'VW System Name';
-      case 10: return 'Audi System Name';
-      case 11: return 'Seat System Name';
-      case 12: return 'System Supplier';
-      case 13: return 'DTC Status 04';
-      case 14: return 'DTC Status 08';
-      default: return 'Unknown';
+      case 0: return l10n.sessionStatus;
+      case 1: return l10n.vin;
+      case 2: return l10n.vehicleInfo;
+      case 3: return l10n.serialNumber;
+      case 4: return l10n.vinExtended;
+      case 5: return l10n.calibrationId;
+      case 6: return l10n.systemName;
+      case 7: return l10n.developmentData;
+      case 8: return l10n.activeDiagnosticInfo;
+      case 9: return l10n.vwSystemName;
+      case 10: return l10n.auditSystemName;
+      case 11: return l10n.seatSystemName;
+      case 12: return l10n.systemSupplier;
+      case 13: return '${l10n.dtcStatus} 04';
+      case 14: return '${l10n.dtcStatus} 08';
+      default: return l10n.unknownCategory;
     }
   }
 
@@ -218,8 +224,8 @@ class _DiagnosisScreenState extends State<DiagnosisScreen> {
       final hexBytes = hexData.split(' ');
       if (hexBytes.length < 7) return 'Invalid DTC data';
       
-      // Skip first 7 bytes (frame header) plus 3 more bytes (service response)
-      final dtcData = hexBytes.skip(10).toList();
+      // Skip first 7 bytes (frame header only)
+      final dtcData = hexBytes.skip(7).toList();
       
       final List<String> dtcCodes = [];
       int dtcIndex = 1;
@@ -241,7 +247,7 @@ class _DiagnosisScreenState extends State<DiagnosisScreen> {
           // Convert status to binary
           final statusBinary = statusDecimal.toRadixString(2).padLeft(8, '0');
           
-          dtcCodes.add('DTC ${dtcIndex.toString().padLeft(3, '0')}: Code 0x$codeHex ($codeDecimal) Status:0x$statusHex($statusBinary)');
+          dtcCodes.add('DTC ${dtcIndex.toString().padLeft(3, '0')}: Code 0x$codeHex ($codeDecimal) Status: 0x$statusHex ($statusBinary)');
           dtcIndex++;
         }
       }
@@ -301,11 +307,11 @@ class _DiagnosisScreenState extends State<DiagnosisScreen> {
   Future<void> _startDiagnosis() async {
     if (_isDiagnosing) return;
     
-    setState(() {
-      _isDiagnosing = true;
-      _receivedMessages = 'Starting diagnosis...\n\n';
-      _initialBufferData = _viewModel.sfdReceivedData; // Record initial state
-    });
+          setState(() {
+        _isDiagnosing = true;
+        _receivedMessages = '${AppLocalizations.of(context).startingDiagnosis}\n\n';
+        _initialBufferData = _viewModel.sfdReceivedData; // Record initial state
+      });
 
     try {
       // Run the complete diagnosis sequence
@@ -316,13 +322,13 @@ class _DiagnosisScreenState extends State<DiagnosisScreen> {
       });
       
       _scrollToBottom();
-      _showMessage('Diagnosis completed successfully');
+      _showMessage(AppLocalizations.of(context).diagnosisCompleted);
     } catch (e) {
       setState(() {
         _receivedMessages += '\nError: $e';
       });
       _scrollToBottom();
-      _showMessage('Diagnosis failed: $e');
+      _showMessage('${AppLocalizations.of(context).diagnosisFailed}: $e');
     } finally {
       setState(() {
         _isDiagnosing = false;
@@ -335,12 +341,13 @@ class _DiagnosisScreenState extends State<DiagnosisScreen> {
     setState(() {
       _receivedMessages = '';
     });
-    _showMessage('Messages cleared');
+    _showMessage(AppLocalizations.of(context).messagesCleared);
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     
     return ChangeNotifierProvider.value(
       value: _viewModel,
@@ -348,8 +355,7 @@ class _DiagnosisScreenState extends State<DiagnosisScreen> {
         builder: (context, vm, child) {
           return Scaffold(
             appBar: AppBar(
-              title: const Text('Diagnosis'),
-              backgroundColor: theme.colorScheme.inversePrimary,
+              title: Text(l10n.diagnosis),
             ),
             body: Column(
               children: [
@@ -364,13 +370,13 @@ class _DiagnosisScreenState extends State<DiagnosisScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Select ECU (Optional)',
+                            l10n.selectECUOptional,
                             style: theme.textTheme.titleMedium?.copyWith(
                               fontWeight: FontWeight.bold,
                             ),
                           ),
                           Text(
-                            'Diagnosis can run without ECU selection',
+                            l10n.diagnosisCanRun,
                             style: theme.textTheme.bodySmall?.copyWith(
                               color: theme.colorScheme.onSurfaceVariant,
                             ),
@@ -390,12 +396,12 @@ class _DiagnosisScreenState extends State<DiagnosisScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          'Diagnosis Results',
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
+                                                  Text(
+                            l10n.diagnosisResults,
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
-                        ),
                         const SizedBox(height: 8),
                         Expanded(
                           child: Container(
@@ -412,7 +418,7 @@ class _DiagnosisScreenState extends State<DiagnosisScreen> {
                               controller: _scrollController,
                               child: Text(
                                 _receivedMessages.isEmpty 
-                                    ? 'No diagnosis results yet...' 
+                                    ? l10n.noDiagnosisResults
                                     : _receivedMessages,
                                 style: theme.textTheme.bodyMedium?.copyWith(
                                   fontFamily: 'monospace',
@@ -447,7 +453,7 @@ class _DiagnosisScreenState extends State<DiagnosisScreen> {
                                   child: CircularProgressIndicator(strokeWidth: 2),
                                 )
                               : const Icon(Icons.medical_services),
-                          label: const Text('Diagnose'),
+                          label: Text(l10n.diagnose),
                           style: ElevatedButton.styleFrom(
                             padding: const EdgeInsets.symmetric(vertical: 16),
                             backgroundColor: theme.colorScheme.primary,
@@ -461,7 +467,7 @@ class _DiagnosisScreenState extends State<DiagnosisScreen> {
                         child: ElevatedButton.icon(
                           onPressed: _receivedMessages.isNotEmpty ? _clearMessages : null,
                           icon: const Icon(Icons.clear),
-                          label: const Text('Clear'),
+                          label: Text(l10n.clear),
                           style: ElevatedButton.styleFrom(
                             padding: const EdgeInsets.symmetric(vertical: 16),
                             backgroundColor: theme.colorScheme.secondary,
