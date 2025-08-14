@@ -1,3 +1,5 @@
+[English](README_EN.md) | [中文](README.md)
+
 ## LinkOBD
 
 一款面向车主与维修人员的车载诊断应用。通过蓝牙低功耗（BLE）连接 OBD‑II 适配器，查看车辆实时数据、进行基础诊断，并提供高级的十六进制控制台与 SFD 功能。
